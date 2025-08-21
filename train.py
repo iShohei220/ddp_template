@@ -123,7 +123,10 @@ def create_dataloader(cfg):
 
 if __name__ == "__main__":
     # DDP Setup
-    init_process_group(backend="nccl" if CUDA_IS_AVAILABLE else "gloo")
+    init_process_group(
+        backend="nccl" if CUDA_IS_AVAILABLE else "gloo",
+        device_id=LOCAL_RANK if CUDA_IS_AVAILABLE else None
+    )
     if CUDA_IS_AVAILABLE:
         torch.cuda.set_device(LOCAL_RANK)
 
