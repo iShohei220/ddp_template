@@ -41,7 +41,7 @@ def train(
         optimizer.zero_grad()
 
         pred = model(x)
-        loss = cross_entropy(pred, y).mean()
+        loss = cross_entropy(pred, y.to(pred.device)).mean()
         loss.backward()
 
         optimizer.step()
@@ -71,7 +71,7 @@ def test(
     running_loss = 0.0
     for x, y in dataloader:
         pred = model(x)
-        loss = cross_entropy(pred, y).mean()
+        loss = cross_entropy(pred, y.to(pred.device)).mean()
         running_loss += loss.detach()
 
     reduce(running_loss, 0)
