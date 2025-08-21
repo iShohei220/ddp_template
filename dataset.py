@@ -5,21 +5,25 @@ from torch.distributed import barrier
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import v2
 
-from config import Dataset
+from config import DataConfig
 
 
-def load_dataset(cfg: Dataset, root: str, train=True):
-    global_rank = int(os.environ["RANK"])
+def load_dataset(
+    cfg: DataConfig,
+    root: str = os.path.join(os.path.dirname(__file__), "data"),
+    train=True
+):
+    rank = int(os.environ["RANK"])
     local_rank = int(os.environ["LOCAL_RANK"])
 
     # Dataset
     if cfg.name == "cifar10":
         transform = v2.Compose([
             v2.ToImage(),
-            v2.ToDtype(torch.long),
+            v2.ToDtype(torch.float, scale=True),
         ])
 
-        if global_rank == 0:
+        if rank == 0:
             dataset = CIFAR10(
                 root,
                 train=train,
@@ -28,7 +32,7 @@ def load_dataset(cfg: Dataset, root: str, train=True):
             )
 
         barrier()
-        if global_rank != 0 and local_rank == 0:
+        if rank != 0 and local_rank == 0:
             dataset = CIFAR10(
                 root,
                 train=train,

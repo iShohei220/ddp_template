@@ -2,13 +2,13 @@ seed: 0
 num_workers: 4
 
 train:
-  batch_size: 128
-  num_epochs: 1000
-  steps_per_epoch: 100
+  batch_size: 2
+  num_epochs: 3
+  steps_per_epoch: 5
 
 test:
-  batch_size: 128
-  steps_per_epoch: 10
+  batch_size: 2
+  steps_per_epoch: 5
 
 dataset:
   name: "cifar10"
@@ -22,4 +22,3 @@ model:
 
 optimizer:
   lr: 1.0e-3
-  lr_warmup_steps: 1
