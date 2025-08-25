@@ -79,7 +79,7 @@ def test(
     writer.add_scalar(
         f'loss/test',
         running_loss.item() / (WORLD_SIZE * cfg.test.steps_per_epoch),
-        cfg.test.steps_per_epoch * epoch
+        cfg.train.steps_per_epoch * epoch
     )
 
 
