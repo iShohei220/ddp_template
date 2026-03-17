@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 
 class TrainConfig(BaseModel):
@@ -9,6 +9,7 @@ class TrainConfig(BaseModel):
 
 
 class TestConfig(BaseModel):
+    enabled: bool = True
     batch_size: int = 128
     steps_per_epoch: int = 10
 
@@ -21,7 +22,7 @@ class ModelConfig(BaseModel):
 
 class OptimConfig(BaseModel):
     lr: float = 2e-4
-    betas: List[float] = (0.9, 0.999)
+    betas: List[float] = [0.9, 0.999]
     eps: float = 1e-8
     weight_decay: float = 0.0
 
@@ -34,7 +35,10 @@ class DataConfig(BaseModel):
 
 class Config(BaseModel):
     seed: int = 0
-    num_workers: int = 4
+    save_freq: int = 100
+    log_dir: Optional[str] = None
+    num_workers: Optional[int] = None
+    compile: bool = True
     dataset: DataConfig = DataConfig()
     model: ModelConfig = ModelConfig()
     optim: OptimConfig = OptimConfig()
