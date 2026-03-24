@@ -1,53 +1,49 @@
-import os
-
 import torch
-import torch.distributed as dist
-from torchvision.datasets import CIFAR10
 from torchvision.transforms import v2
 
-from config import DataConfig
+from arguments import DataTrainingArguments, ModelArguments
+
+IMAGE_COLUMN = "img"
+LABEL_COLUMN = "label"
 
 
-def load_dataset(cfg: DataConfig, split: str = "train"):
-    if cfg.name == "cifar10":
-        return load_cifar10_dataset(cfg, split)
-    raise NotImplementedError(f"Dataset {cfg.name} is not supported.")
-
-
-def load_cifar10_dataset(cfg: DataConfig, split: str):
-    if split not in {"train", "test"}:
-        raise ValueError(f"Unknown split: {split}")
-
-    root = cfg.root
-    if root is None:
-        root = os.path.join(os.path.dirname(__file__), "data")
-
-    is_distributed = dist.is_available() and dist.is_initialized()
-    rank = int(os.environ.get("RANK", 0))
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    is_train = split == "train"
-
+def build_transform(image_size: int):
     transform = v2.Compose(
         [
-            v2.Resize((cfg.resolution, cfg.resolution)),
+            v2.Resize((image_size, image_size)),
             v2.ToImage(),
             v2.ToDtype(torch.float, scale=True),
         ]
     )
 
-    if not is_distributed:
-        dataset = CIFAR10(root, train=is_train, download=True, transform=transform)
-    elif rank == 0:
-        dataset = CIFAR10(root, train=is_train, download=True, transform=transform)
+    def apply_transform(examples):
+        pixel_values = [transform(image.convert("RGB")) for image in examples[IMAGE_COLUMN]]
+        return {"pixel_values": pixel_values, "labels": examples[LABEL_COLUMN]}
 
-    if is_distributed:
-        dist.barrier()
-    if is_distributed and rank != 0 and local_rank == 0:
-        dataset = CIFAR10(root, train=is_train, download=True, transform=transform)
+    return apply_transform
 
-    if is_distributed:
-        dist.barrier()
-    if is_distributed and local_rank != 0:
-        dataset = CIFAR10(root, train=is_train, download=False, transform=transform)
 
-    return dataset
+def get_num_labels(dataset) -> int:
+    return dataset.features[LABEL_COLUMN].num_classes
+
+
+def validate_dataset(
+    data_args: DataTrainingArguments,
+    model_args: ModelArguments,
+    dataset,
+    split: str,
+) -> None:
+    num_labels = get_num_labels(dataset)
+    if num_labels is None:
+        raise ValueError(f"{split} dataset does not expose class labels")
+
+    example = dataset[0]
+    image = example["pixel_values"]
+    if image.shape[0] != model_args.in_channels:
+        raise ValueError(
+            f"{split} dataset channel count ({image.shape[0]}) does not match model ({model_args.in_channels})"
+        )
+    if image.shape[-2:] != (data_args.image_size, data_args.image_size):
+        raise ValueError(
+            f"{split} dataset resolution ({image.shape[-2:]}) does not match args ({data_args.image_size})"
+        )
